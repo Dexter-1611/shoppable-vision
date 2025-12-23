@@ -143,11 +143,22 @@ const VideoPlayer = () => {
     
     if (!ctx) return null;
     
+    // Check if video has loaded and has dimensions
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      console.error("Video not loaded or has no dimensions");
+      return null;
+    }
+    
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    return canvas.toDataURL("image/jpeg", 0.8);
+    try {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL("image/jpeg", 0.8);
+    } catch (error) {
+      console.error("Canvas capture error (CORS):", error);
+      return null;
+    }
   }, []);
 
   const scanProducts = async () => {
@@ -281,7 +292,7 @@ const VideoPlayer = () => {
                 </div>
               </div>
             ) : (
-              <>
+            <>
                 <video
                   ref={videoRef}
                   src={video.video_url}
@@ -291,7 +302,15 @@ const VideoPlayer = () => {
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
                   onClick={togglePlay}
-                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    console.error("Video error:", e);
+                    toast({
+                      title: "Video playback error",
+                      description: "There was an issue loading the video.",
+                      variant: "destructive",
+                    });
+                  }}
+                  playsInline
                 />
 
                 {/* Product Overlays */}
