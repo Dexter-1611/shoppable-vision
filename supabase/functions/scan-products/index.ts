@@ -21,7 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageData, videoId } = await req.json();
+    const { imageData, videoId, isUrl } = await req.json();
 
     if (!imageData) {
       console.error("No image data provided");
@@ -39,7 +39,16 @@ serve(async (req) => {
       );
     }
 
-    console.log("Scanning products from frame for video:", videoId);
+    console.log("Scanning products from frame for video:", videoId, "isUrl:", isUrl);
+
+    // Build the image content for the AI request
+    // If isUrl is true, the imageData is a URL; otherwise it's base64
+    const imageContent = {
+      type: "image_url" as const,
+      image_url: {
+        url: imageData
+      }
+    };
 
     // Call the AI Vision API to analyze the image
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -54,35 +63,32 @@ serve(async (req) => {
           {
             role: "system",
             content: `You are a product identification AI expert. Analyze images to identify shoppable products including:
-- Fashion items (clothing, shoes, accessories, jewelry, bags)
-- Electronics (phones, laptops, headphones, cameras, watches)
-- Home decor (furniture, lighting, decorations)
-- Beauty products (makeup, skincare)
-- Sports equipment
+- Fashion items (clothing, shoes, accessories, jewelry, bags, watches)
+- Electronics (phones, laptops, headphones, cameras, tablets, gaming devices)
+- Home decor (furniture, lighting, decorations, kitchenware)
+- Beauty products (makeup, skincare, haircare)
+- Sports equipment (shoes, apparel, gear, accessories)
+- Vehicles (cars, motorcycles, bicycles)
 
 For each product you identify, provide:
 1. A specific product name (be descriptive, e.g., "Black leather crossbody bag" not just "bag")
-2. A category (Fashion, Electronics, Home, Beauty, Sports, Accessories)
+2. A category (Fashion, Electronics, Home, Beauty, Sports, Accessories, Automotive)
 3. A confidence score (0.0 to 1.0)
 
 Return ONLY a valid JSON array of products. No markdown, no explanations. Example format:
 [{"name": "Navy Blue Blazer", "category": "Fashion", "confidence": 0.92}]
 
-If no products are visible, return an empty array: []`
+If no products are visible, return an empty array: []
+Identify as many products as you can see in the image.`
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Identify all shoppable products visible in this video frame. Return a JSON array of products."
+                text: "Identify all shoppable products visible in this image. Return a JSON array of products with name, category, and confidence score."
               },
-              {
-                type: "image_url",
-                image_url: {
-                  url: imageData
-                }
-              }
+              imageContent
             ]
           }
         ],
