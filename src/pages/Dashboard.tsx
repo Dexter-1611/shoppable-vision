@@ -221,9 +221,28 @@ const Dashboard = () => {
   };
 
   const extractYoutubeId = (url: string): string | null => {
-    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-    const match = url.match(regex);
-    return match ? match[1] : null;
+    const trimmedUrl = url.trim();
+    
+    // Handle various YouTube URL formats
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,           // Standard watch URL
+      /(?:youtube\.com\/watch\?.*v=)([a-zA-Z0-9_-]{11})/,         // Watch URL with extra params
+      /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,                        // Short URL
+      /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,             // Embed URL
+      /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,                 // Old embed URL
+      /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,            // Shorts URL
+      /(?:youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/,              // Live URL
+      /^([a-zA-Z0-9_-]{11})$/,                                     // Just the video ID
+    ];
+
+    for (const pattern of patterns) {
+      const match = trimmedUrl.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    
+    return null;
   };
 
   return (
