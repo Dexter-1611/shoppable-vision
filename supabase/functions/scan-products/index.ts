@@ -5,6 +5,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface Product {
+  name: string;
+  category: string;
+  confidence: number;
+  searchUrl?: string;
+}
+
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 serve(async (req) => {
@@ -109,7 +116,7 @@ If no products are visible, return an empty array: []`
     console.log("AI response content:", content);
 
     // Parse the AI response
-    let products = [];
+    let products: Product[] = [];
     try {
       // Clean up the response - remove markdown code blocks if present
       let cleanContent = content.trim();
@@ -119,13 +126,15 @@ If no products are visible, return an empty array: []`
         cleanContent = cleanContent.replace(/^```\n?/, "").replace(/\n?```$/, "");
       }
       
-      products = JSON.parse(cleanContent);
+      const parsed = JSON.parse(cleanContent);
       
       // Validate and enhance products
-      if (Array.isArray(products)) {
-        products = products
-          .filter((p: any) => p && p.name && p.category)
-          .map((p: any) => ({
+      if (Array.isArray(parsed)) {
+        products = parsed
+          .filter((p: unknown): p is { name: string; category: string; confidence?: number } => 
+            typeof p === 'object' && p !== null && 'name' in p && 'category' in p
+          )
+          .map((p) => ({
             name: p.name,
             category: p.category,
             confidence: p.confidence || 0.8,
